@@ -3,34 +3,53 @@ import { WhatsAppAccount, Bot, Flow, FlowVersion, Session } from '../models';
 import { decrypt } from '../utils/encryption';
 import * as executionService from '../services/executionService';
 import * as sessionService from '../services/sessionService';
-
-const WEBHOOK_VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'your-verify-token';
+import { Types } from 'mongoose';
 
 /**
- * GET /api/webhook/whatsapp — Webhook verification
+ * GET /api/webhook/whatsapp/:botId — Webhook verification (per-bot)
  */
-export const verifyWebhook = (req: Request, res: Response): void => {
+export const verifyWebhook = async (req: Request, res: Response): Promise<void> => {
+    const { botId } = req.params;
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    if (mode === 'subscribe' && token === WEBHOOK_VERIFY_TOKEN) {
-        console.log('[Webhook] Verification successful');
-        res.status(200).send(challenge);
-    } else {
-        console.log('[Webhook] Verification failed');
+    if (mode !== 'subscribe') {
+        console.log('[Webhook] Verification failed — invalid mode');
         res.status(403).send('Forbidden');
+        return;
+    }
+
+    try {
+        const waAccount = await WhatsAppAccount.findOne({ botId });
+        if (!waAccount) {
+            console.log(`[Webhook] Verification failed — no WhatsApp account for bot: ${botId}`);
+            res.status(404).send('Bot not found');
+            return;
+        }
+
+        if (token === waAccount.verifyToken) {
+            console.log(`[Webhook] Verification successful for bot: ${botId}`);
+            res.status(200).send(challenge);
+        } else {
+            console.log(`[Webhook] Verification failed — token mismatch for bot: ${botId}`);
+            res.status(403).send('Forbidden');
+        }
+    } catch (error) {
+        console.error('[Webhook] Verification error:', error);
+        res.status(500).send('Internal Server Error');
     }
 };
 
 /**
- * POST /api/webhook/whatsapp — Handle incoming messages
+ * POST /api/webhook/whatsapp/:botId — Handle incoming messages (per-bot)
  */
 export const handleWebhook = async (req: Request, res: Response): Promise<void> => {
     // Return 200 immediately (async processing)
     res.status(200).send('EVENT_RECEIVED');
 
     try {
+        const { botId } = req.params;
         const body = req.body;
 
         if (body.object !== 'whatsapp_business_account') return;
@@ -48,11 +67,11 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
                 const value = change.value;
                 if (!value?.messages || !Array.isArray(value.messages)) continue;
 
-                const recipientPhoneNumberId = value.metadata?.phone_number_id;
+                const recipientPhoneNumberId: string = value.metadata?.phone_number_id as string;
                 if (!recipientPhoneNumberId) continue;
 
                 for (const message of value.messages) {
-                    await processIncomingMessage(recipientPhoneNumberId, message);
+                    await processIncomingMessage(botId, recipientPhoneNumberId, message);
                 }
             }
         }
@@ -62,6 +81,7 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
 };
 
 const processIncomingMessage = async (
+    botId: string,
     phoneNumberId: string,
     message: {
         from: string;
@@ -72,14 +92,18 @@ const processIncomingMessage = async (
     }
 ): Promise<void> => {
     try {
-        // Find WhatsApp account by phone number ID
-        const waAccount = await WhatsAppAccount.findOne({ phoneNumberId });
+        // Find WhatsApp account by botId (primary) and verify phoneNumberId matches
+        const waAccount = await WhatsAppAccount.findOne({ botId });
         if (!waAccount) {
-            console.error(`[Webhook] No bot found for phone number ID: ${phoneNumberId}`);
+            console.error(`[Webhook] No WhatsApp account found for bot: ${botId}`);
             return;
         }
 
-        const botId = waAccount.botId;
+        if (waAccount.phoneNumberId !== phoneNumberId) {
+            console.error(`[Webhook] Phone number ID mismatch for bot: ${botId}`);
+            return;
+        }
+
         const senderPhone = message.from;
 
         // Find bot
@@ -109,7 +133,7 @@ const processIncomingMessage = async (
 
         // Find or create session
         const session = await sessionService.findOrCreateSession(
-            botId,
+            botId as unknown as Types.ObjectId,
             senderPhone,
             prodVersion._id,
             false

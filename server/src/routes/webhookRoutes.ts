@@ -4,7 +4,7 @@ import { webhookLimiter } from '../middlewares/rateLimiter';
 
 const router = Router();
 
-router.get('/whatsapp', verifyWebhook);
-router.post('/whatsapp', webhookLimiter, handleWebhook);
+router.get('/whatsapp/:botId', verifyWebhook);
+router.post('/whatsapp/:botId', webhookLimiter, handleWebhook);
 
 export default router;

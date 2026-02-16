@@ -5,14 +5,15 @@ const WhatsAppAccountSchema = new Schema<IWhatsAppAccount>(
     {
         botId: { type: Schema.Types.ObjectId, ref: 'Bot', required: true, unique: true },
         phoneNumberId: { type: String, required: true, unique: true },
-        businessAccountId: { type: String, required: true },
         accessToken: { type: String, required: true }, // Encrypted with AES-256
         phoneNumber: { type: String, required: true, unique: true },
+        verifyToken: { type: String, required: true },
     },
     { timestamps: true }
 );
 
 WhatsAppAccountSchema.index({ phoneNumber: 1 });
 WhatsAppAccountSchema.index({ phoneNumberId: 1 });
+WhatsAppAccountSchema.index({ botId: 1 });
 
 export default mongoose.model<IWhatsAppAccount>('WhatsAppAccount', WhatsAppAccountSchema);

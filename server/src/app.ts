@@ -37,14 +37,17 @@ if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
 }
 
-// Rate limiting (skip for webhooks)
+// Webhook routes (BEFORE rate limiting — Meta needs unrestricted access for verification)
+// Webhook routes have their own dedicated rate limiter (webhookLimiter)
+app.use('/api/webhook', webhookRoutes);
+
+// Rate limiting (applied to all /api routes EXCEPT webhooks which are already mounted above)
 app.use('/api', apiLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/bots', botRoutes);
 app.use('/api/bots', flowRoutes); // Nested under /api/bots/:botId/flows
-app.use('/api/webhook', webhookRoutes);
 app.use('/api/openai', openaiRoutes);
 app.use('/api/simulator', simulatorRoutes);
 app.use('/api/analytics', analyticsRoutes);

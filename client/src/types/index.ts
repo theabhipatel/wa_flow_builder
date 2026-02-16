@@ -34,8 +34,8 @@ export interface IBot {
     activeSessionCount?: number;
     whatsapp?: {
         phoneNumberId: string;
-        businessAccountId: string;
         phoneNumber: string;
+        verifyToken: string;
     } | null;
     createdAt: string;
     updatedAt: string;

@@ -6,6 +6,7 @@ import {
     updateBot,
     deleteBot,
     connectWhatsApp,
+    checkWhatsAppConnection,
     disconnectWhatsApp,
 } from '../controllers/botController';
 import { getBotVariables, setBotVariable, deleteBotVariable } from '../controllers/botVariableController';
@@ -23,6 +24,7 @@ router.delete('/:botId', deleteBot);
 
 // WhatsApp
 router.post('/:botId/whatsapp/connect', connectWhatsApp);
+router.post('/:botId/whatsapp/check', checkWhatsAppConnection);
 router.delete('/:botId/whatsapp/disconnect', disconnectWhatsApp);
 
 // Bot variables

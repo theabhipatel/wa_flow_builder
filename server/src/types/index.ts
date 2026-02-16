@@ -52,9 +52,9 @@ export interface IWhatsAppAccount extends Document {
     _id: Types.ObjectId;
     botId: Types.ObjectId;
     phoneNumberId: string;
-    businessAccountId: string;
     accessToken: string; // Encrypted
     phoneNumber: string;
+    verifyToken: string;
     createdAt: Date;
     updatedAt: Date;
 }

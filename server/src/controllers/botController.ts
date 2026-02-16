@@ -105,8 +105,8 @@ export const getBot = async (req: Request, res: Response, next: NextFunction): P
                 whatsapp: waAccount
                     ? {
                         phoneNumberId: waAccount.phoneNumberId,
-                        businessAccountId: waAccount.businessAccountId,
                         phoneNumber: waAccount.phoneNumber,
+                        verifyToken: waAccount.verifyToken,
                     }
                     : null,
             },
@@ -165,7 +165,7 @@ export const connectWhatsApp = async (req: Request, res: Response, next: NextFun
     try {
         const { botId } = req.params;
         const userId = req.user!.userId;
-        const { phoneNumberId, businessAccountId, accessToken, phoneNumber } = req.body;
+        const { phoneNumberId, accessToken, phoneNumber, verifyToken } = req.body;
 
         const bot = await Bot.findOne({ _id: botId, userId });
         if (!bot) {
@@ -173,27 +173,20 @@ export const connectWhatsApp = async (req: Request, res: Response, next: NextFun
             return;
         }
 
-        if (!phoneNumberId || !businessAccountId || !accessToken || !phoneNumber) {
-            res.status(400).json({ success: false, error: 'All WhatsApp fields are required' });
+        if (!phoneNumberId || !accessToken || !phoneNumber || !verifyToken) {
+            res.status(400).json({ success: false, error: 'All WhatsApp fields are required (Phone Number ID, Access Token, Phone Number, Verify Token)' });
             return;
         }
 
-        // Validate credentials
-        const isValid = await whatsappServiceModule.validateCredentials(phoneNumberId, accessToken);
-        if (!isValid) {
-            res.status(400).json({ success: false, error: 'Invalid WhatsApp credentials' });
-            return;
-        }
-
-        // Upsert WhatsApp account
+        // Save settings to DB (no credential validation — user needs to save first, then configure Meta)
         const encryptedToken = encrypt(accessToken);
         const waAccount = await WhatsAppAccount.findOneAndUpdate(
             { botId },
             {
                 phoneNumberId,
-                businessAccountId,
                 accessToken: encryptedToken,
                 phoneNumber,
+                verifyToken,
             },
             { upsert: true, new: true }
         );
@@ -202,11 +195,51 @@ export const connectWhatsApp = async (req: Request, res: Response, next: NextFun
             success: true,
             data: {
                 phoneNumberId: waAccount.phoneNumberId,
-                businessAccountId: waAccount.businessAccountId,
                 phoneNumber: waAccount.phoneNumber,
+                verifyToken: waAccount.verifyToken,
             },
-            message: 'WhatsApp connected successfully',
+            message: 'WhatsApp settings saved successfully. Now copy the Webhook URL and Verify Token into your Meta Developer App, then click "Check Connection".',
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Check WhatsApp connection by validating credentials against Meta Graph API
+ */
+export const checkWhatsAppConnection = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { botId } = req.params;
+        const userId = req.user!.userId;
+
+        const bot = await Bot.findOne({ _id: botId, userId });
+        if (!bot) {
+            res.status(404).json({ success: false, error: 'Bot not found' });
+            return;
+        }
+
+        const waAccount = await WhatsAppAccount.findOne({ botId });
+        if (!waAccount) {
+            res.status(404).json({ success: false, error: 'WhatsApp settings not found. Please save your settings first.' });
+            return;
+        }
+
+        // Decrypt and validate credentials against Meta API
+        const decryptedToken = decrypt(waAccount.accessToken);
+        const isValid = await whatsappServiceModule.validateCredentials(waAccount.phoneNumberId, decryptedToken);
+
+        if (isValid) {
+            res.json({
+                success: true,
+                message: 'WhatsApp connection verified successfully! Your bot is ready to receive messages.',
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: 'Connection check failed. Please verify your Access Token and Phone Number ID are correct in Meta Developer Console.',
+            });
+        }
     } catch (error) {
         next(error);
     }

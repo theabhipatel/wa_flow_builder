@@ -20,7 +20,7 @@ const startServer = async (): Promise<void> => {
         // Start Express server
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
-            console.log(`📡 Webhook URL: http://localhost:${PORT}/api/webhook/whatsapp`);
+            console.log(`📡 Webhook URL: http://localhost:${PORT}/api/webhook/whatsapp/:botId`);
             console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
         });
     } catch (error) {
