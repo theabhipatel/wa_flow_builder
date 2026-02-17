@@ -922,8 +922,8 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                     <div>
                         <label className="input-label">Farewell Message (optional)</label>
                         <textarea
-                            value={(config.message as string) || ''}
-                            onChange={(e) => updateConfig('message', e.target.value)}
+                            value={(config.finalMessage as string) || ''}
+                            onChange={(e) => updateConfig('finalMessage', e.target.value)}
                             className="input-field"
                             rows={3}
                             placeholder="Thank you! Goodbye."

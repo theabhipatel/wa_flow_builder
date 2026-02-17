@@ -1251,6 +1251,9 @@ const executeEndNode = async (context: IExecutionContext, node: IFlowNode): Prom
         });
     }
 
+    // Clear subflow call stack to prevent returning to parent flow
+    context.session.subflowCallStack = [];
+
     // Update session status
     if (config.sessionAction === 'CLOSE_SESSION') {
         await sessionService.closeSession(context.session._id);
@@ -1258,6 +1261,7 @@ const executeEndNode = async (context: IExecutionContext, node: IFlowNode): Prom
         await sessionService.updateSessionState(context.session._id, {
             status: 'COMPLETED',
             currentNodeId: node.nodeId,
+            subflowCallStack: [],
         });
     }
 

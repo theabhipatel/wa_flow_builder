@@ -60,12 +60,7 @@ export const findOrCreateSession = async (
  */
 export const updateSessionState = async (
     sessionId: Types.ObjectId,
-    update: Partial<{
-        currentNodeId: string;
-        status: string;
-        resumeAt: Date;
-        closedAt: Date;
-    }>
+    update: Partial<ISession>
 ): Promise<void> => {
     await Session.findByIdAndUpdate(sessionId, {
         ...update,
