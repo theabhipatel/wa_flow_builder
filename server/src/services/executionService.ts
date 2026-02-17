@@ -326,9 +326,17 @@ const executeNode = async (context: IExecutionContext): Promise<void> => {
             await executeNode(context);
         }
     } else if (!nextNodeId && !error) {
-        // No next node — check if we need to return from a subflow
-        console.log(`[Execution] 🔚 No next node — checking for subflow return`);
-        await handleSubflowReturn(context);
+        // No next node — check if session was paused (BUTTON / INPUT waiting for user)
+        const freshSession = await Session.findById(session._id);
+        const isPaused = freshSession?.status === 'PAUSED';
+
+        if (isPaused) {
+            console.log(`[Execution] ⏸️ Session is PAUSED — waiting for user input (not returning to parent flow)`);
+            // Don't call handleSubflowReturn; the user needs to respond first
+        } else {
+            console.log(`[Execution] 🔚 No next node — checking for subflow return`);
+            await handleSubflowReturn(context);
+        }
     }
 };
 

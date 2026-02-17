@@ -216,7 +216,10 @@ const processIncomingMessage = async (
 
         // Step 5b: Check if session's flow version is still current
         // If the flow was re-deployed, the old session may be stuck on a stale version
-        if (session.flowVersionId?.toString() !== prodVersion._id.toString()) {
+        // BUT: if the session is currently inside a subflow, its flowVersionId will be the
+        // subflow's version — that's expected, so skip the stale check in that case.
+        const isInsideSubflow = session.subflowCallStack && session.subflowCallStack.length > 0;
+        if (!isInsideSubflow && session.flowVersionId?.toString() !== prodVersion._id.toString()) {
             console.log(`[Process Message] ⚠️ Session uses flow version ${session.flowVersionId} but production is ${prodVersion._id}`);
             console.log(`  Closing stale session and creating a fresh one...`);
             await sessionService.closeSession(session._id);
@@ -226,6 +229,8 @@ const processIncomingMessage = async (
                 prodVersion._id,
                 false
             );
+        } else if (isInsideSubflow) {
+            console.log(`[Process Message] 📂 Session is inside a subflow (stack depth: ${session.subflowCallStack!.length}) — skipping stale version check`);
         }
 
         console.log(`[Process Message] ✅ Session ready`);
