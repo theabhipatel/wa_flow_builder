@@ -9,6 +9,4 @@ const OpenAIAccountSchema = new Schema<IOpenAIAccount>(
     { timestamps: true }
 );
 
-OpenAIAccountSchema.index({ userId: 1 });
-
 export default mongoose.model<IOpenAIAccount>('OpenAIAccount', OpenAIAccountSchema);

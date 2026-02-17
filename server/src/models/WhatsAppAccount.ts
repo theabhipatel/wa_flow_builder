@@ -12,8 +12,4 @@ const WhatsAppAccountSchema = new Schema<IWhatsAppAccount>(
     { timestamps: true }
 );
 
-WhatsAppAccountSchema.index({ phoneNumber: 1 });
-WhatsAppAccountSchema.index({ phoneNumberId: 1 });
-WhatsAppAccountSchema.index({ botId: 1 });
-
 export default mongoose.model<IWhatsAppAccount>('WhatsAppAccount', WhatsAppAccountSchema);
