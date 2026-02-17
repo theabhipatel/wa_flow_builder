@@ -91,6 +91,10 @@ const builderSlice = createSlice({
             state.showMinimap = !state.showMinimap;
         },
         deleteNode(state, action: PayloadAction<string>) {
+            // Prevent deleting START nodes
+            const nodeToDelete = state.flowData.nodes.find((n) => n.nodeId === action.payload);
+            if (!nodeToDelete || nodeToDelete.nodeType === 'START') return;
+
             state.undoStack.push(JSON.parse(JSON.stringify(state.flowData)));
             if (state.undoStack.length > MAX_UNDO) state.undoStack.shift();
             state.redoStack = [];

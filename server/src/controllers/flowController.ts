@@ -202,6 +202,19 @@ export const saveDraft = async (req: Request, res: Response, next: NextFunction)
             return;
         }
 
+        // Ensure flowData always contains a START node
+        const hasStartNode = flowData.nodes?.some((n: { nodeType: string }) => n.nodeType === 'START');
+        if (!hasStartNode) {
+            if (!flowData.nodes) flowData.nodes = [];
+            flowData.nodes.unshift({
+                nodeId: `start_${Date.now()}`,
+                nodeType: 'START',
+                position: { x: 250, y: 100 },
+                label: 'Start',
+                config: {},
+            });
+        }
+
         // Find or create latest draft
         let draftVersion = await FlowVersion.findOne({ flowId, isDraft: true })
             .sort({ versionNumber: -1 });

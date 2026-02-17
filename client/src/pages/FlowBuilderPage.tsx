@@ -99,6 +99,9 @@ function FlowBuilderInner() {
     const requestDeleteNode = useCallback((nodeId: string) => {
         setNodes((nds) => {
             const node = nds.find((n) => n.id === nodeId);
+            // Prevent deleting START nodes
+            if (node && (node.data as Record<string, unknown>).nodeType === 'START') return nds;
+
             const label = node ? (node.data as Record<string, unknown>).label as string || nodeId : nodeId;
 
             setConfirmModal({
@@ -117,10 +120,15 @@ function FlowBuilderInner() {
     }, []);
 
     const performDeleteNode = useCallback((nodeId: string) => {
-        dispatch(deleteNode(nodeId));
-        dispatch(selectNode(null));
-        setNodes((nds) => nds.filter((n: Node) => n.id !== nodeId));
-        setEdges((eds) => eds.filter((e: Edge) => e.source !== nodeId && e.target !== nodeId));
+        // Double-check: never delete a START node
+        setNodes((nds) => {
+            const node = nds.find((n) => n.id === nodeId);
+            if (node && (node.data as Record<string, unknown>).nodeType === 'START') return nds;
+            dispatch(deleteNode(nodeId));
+            dispatch(selectNode(null));
+            setEdges((eds) => eds.filter((e: Edge) => e.source !== nodeId && e.target !== nodeId));
+            return nds.filter((n: Node) => n.id !== nodeId);
+        });
     }, [dispatch]);
 
     // --- Edge deletion ---
@@ -163,10 +171,27 @@ function FlowBuilderInner() {
     }, [botId, flowId]);
 
     const syncToReactFlow = (data: IFlowData) => {
-        const rfNodes: Node[] = data.nodes.map((n) => ({
+        // Ensure a START node always exists
+        let nodesData = data.nodes;
+        const hasStartNode = nodesData.some((n) => n.nodeType === 'START');
+        if (!hasStartNode) {
+            const defaultStartNode: IFlowNode = {
+                nodeId: `start_${Date.now()}`,
+                nodeType: 'START',
+                position: { x: 250, y: 100 },
+                label: 'Start',
+                config: {},
+            };
+            nodesData = [defaultStartNode, ...nodesData];
+            // Also update the Redux store with the start node included
+            dispatch(setFlowData({ ...data, nodes: nodesData }));
+        }
+
+        const rfNodes: Node[] = nodesData.map((n) => ({
             id: n.nodeId,
             type: 'flowNode',
             position: n.position,
+            deletable: n.nodeType !== 'START',
             data: {
                 label: n.label || n.nodeType,
                 nodeType: n.nodeType,
@@ -214,7 +239,17 @@ function FlowBuilderInner() {
 
     // Handle node/edge changes
     const onNodesChange: OnNodesChange = useCallback(
-        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        (changes) => setNodes((nds) => {
+            // Filter out 'remove' changes for START nodes (prevents keyboard Delete key from removing them)
+            const safeChanges = changes.filter((change) => {
+                if (change.type === 'remove') {
+                    const node = nds.find((n) => n.id === change.id);
+                    if (node && (node.data as Record<string, unknown>).nodeType === 'START') return false;
+                }
+                return true;
+            });
+            return applyNodeChanges(safeChanges, nds);
+        }),
         [setNodes]
     );
 
