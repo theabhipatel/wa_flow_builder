@@ -28,6 +28,7 @@ export interface IBot {
     name: string;
     description?: string;
     activeFlowId?: string;
+    defaultFallbackMessage?: string;
     isWhatsAppConnected?: boolean;
     phoneNumber?: string;
     flowCount?: number;

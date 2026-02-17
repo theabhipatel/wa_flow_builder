@@ -7,6 +7,7 @@ const BotSchema = new Schema<IBot>(
         name: { type: String, required: true, trim: true },
         description: { type: String, trim: true },
         activeFlowId: { type: Schema.Types.ObjectId, ref: 'Flow' },
+        defaultFallbackMessage: { type: String, trim: true },
     },
     { timestamps: true }
 );

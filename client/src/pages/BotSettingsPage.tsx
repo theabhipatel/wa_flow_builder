@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { IBot, IBotVariable } from '../types';
-import { ArrowLeft, Phone, Check, X, Plus, Trash2, Loader2, Save, Copy, Link, Shield, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Phone, Check, X, Plus, Trash2, Loader2, Save, Copy, Link, Shield, Wifi, WifiOff, MessageCircle } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -16,6 +16,7 @@ export default function BotSettingsPage() {
     // Bot info
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [defaultFallbackMessage, setDefaultFallbackMessage] = useState('');
 
     // WhatsApp
     const [phoneNumberId, setPhoneNumberId] = useState('');
@@ -45,6 +46,7 @@ export default function BotSettingsPage() {
                     setBot(b);
                     setName(b.name);
                     setDescription(b.description || '');
+                    setDefaultFallbackMessage(b.defaultFallbackMessage || '');
                     if (b.whatsapp) {
                         setPhoneNumberId(b.whatsapp.phoneNumberId);
                         setPhoneNumber(b.whatsapp.phoneNumber);
@@ -67,7 +69,7 @@ export default function BotSettingsPage() {
     const saveBotInfo = async () => {
         setSaving(true);
         try {
-            await api.put(`/bots/${botId}`, { name, description });
+            await api.put(`/bots/${botId}`, { name, description, defaultFallbackMessage: defaultFallbackMessage || undefined });
         } catch (err) {
             console.error(err);
         } finally {
@@ -196,6 +198,32 @@ export default function BotSettingsPage() {
                 </div>
             </div>
 
+            {/* Bot Behavior */}
+            <div className="card p-6 mb-6">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-brand-500" /> Bot Behavior
+                </h2>
+                <p className="text-sm text-surface-500 mb-4">
+                    Configure how the bot responds to unrecognized messages. Users can type <strong>"Hi"</strong> or <strong>"Hello"</strong> at any time to restart the conversation.
+                </p>
+                <div>
+                    <label className="input-label">Default Fallback Message</label>
+                    <p className="text-xs text-surface-500 mb-2">
+                        This message is sent when a user types something unexpected (e.g., random text when a button click is expected). Leave empty to use the default.
+                    </p>
+                    <textarea
+                        value={defaultFallbackMessage}
+                        onChange={(e) => setDefaultFallbackMessage(e.target.value)}
+                        className="input-field"
+                        rows={3}
+                        placeholder="I didn't understand. Please choose an option or send Hi to start again."
+                    />
+                </div>
+                <button onClick={saveBotInfo} disabled={saving} className="btn-primary flex items-center gap-2 mt-4">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
+                </button>
+            </div>
+
             {/* WhatsApp Connection */}
             <div className="card p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
@@ -226,11 +254,10 @@ export default function BotSettingsPage() {
                         </code>
                         <button
                             onClick={copyWebhookUrl}
-                            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shrink-0 ${
-                                copied
+                            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shrink-0 ${copied
                                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                                     : 'bg-brand-500 hover:bg-brand-600 text-white'
-                            }`}
+                                }`}
                         >
                             {copied ? (
                                 <><Check className="w-4 h-4" /> Copied!</>
@@ -289,11 +316,10 @@ export default function BotSettingsPage() {
                             <button
                                 onClick={checkConnection}
                                 disabled={waChecking}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                    bot?.isWhatsAppConnected
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${bot?.isWhatsAppConnected
                                         ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
                                         : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
-                                }`}
+                                    }`}
                             >
                                 {waChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />}
                                 Check Connection

@@ -102,6 +102,135 @@ export const executeFlow = async (
     return { responses: context.simulatorResponses };
 };
 
+// ============================================================
+// RESTART KEYWORDS & GLOBAL FALLBACK HANDLER
+// ============================================================
+
+const RESTART_KEYWORDS = ['hi', 'hello'];
+const DEFAULT_FALLBACK_MESSAGE = "I didn't understand. Please choose an option or send Hi to start again.";
+
+/**
+ * Intercepts incoming messages to handle restart keywords and global fallback.
+ * Called by both webhookController and simulatorController before executeFlow.
+ *
+ * Returns: { handled: true, responses } if the message was intercepted (restart or fallback),
+ *          { handled: false } if the message should proceed to executeFlow normally.
+ */
+export const handleIncomingMessageWithKeywords = async (
+    session: ISession,
+    incomingText: string | undefined,
+    incomingButtonId: string | undefined,
+    isSimulator: boolean
+): Promise<{
+    handled: boolean;
+    responses?: Array<{ type: string; content: string; buttons?: Array<{ id: string; label: string }> }>;
+    newSession?: ISession;
+}> => {
+    // If it's a button click, skip keyword/fallback logic entirely — let executeFlow handle it
+    if (incomingButtonId) {
+        return { handled: false };
+    }
+
+    // If no text message, nothing to intercept
+    if (!incomingText) {
+        return { handled: false };
+    }
+
+    // Load the current node to determine context
+    const flowVersion = await FlowVersion.findById(session.flowVersionId);
+    if (!flowVersion) {
+        return { handled: false };
+    }
+
+    const currentNode = flowVersion.flowData.nodes.find(
+        (n) => n.nodeId === session.currentNodeId
+    );
+
+    // 1. INPUT node — allow all text through as-is (captures user input)
+    if (currentNode && currentNode.nodeType === 'INPUT') {
+        console.log(`[Keywords] Current node is INPUT — bypassing keyword check, capturing input as-is`);
+        return { handled: false };
+    }
+
+    // 2. Check for restart keywords
+    const normalizedText = incomingText.trim().toLowerCase();
+    if (RESTART_KEYWORDS.includes(normalizedText)) {
+        console.log(`[Keywords] 🔄 Restart keyword detected: "${incomingText}" — restarting flow`);
+
+        // Close the current session
+        await sessionService.closeSession(session._id);
+
+        // Find the flow version to create a new session from
+        const newSession = await sessionService.findOrCreateSession(
+            session.botId,
+            session.userPhoneNumber,
+            flowVersion._id,
+            session.isTest
+        );
+
+        // Execute from the START node (no incoming message — triggers the first flow message)
+        const result = await executeFlow(newSession, undefined, undefined, isSimulator);
+
+        return { handled: true, responses: result.responses, newSession };
+    }
+
+    // 3. At any non-INPUT node and user sent text (not a keyword) → send fallback
+    //    This covers: BUTTON (waiting for click), MESSAGE (flow ended), and any other node
+    if (currentNode) {
+        console.log(`[Keywords] ⚠️ Unexpected text at ${currentNode.nodeType} node — sending fallback message`);
+
+        // Load the bot's custom fallback message
+        const { Bot } = await import('../models');
+        const bot = await Bot.findById(session.botId);
+        const fallbackMessage = bot?.defaultFallbackMessage || DEFAULT_FALLBACK_MESSAGE;
+
+        // Log user message
+        await Message.create({
+            sessionId: session._id,
+            sender: 'USER',
+            messageType: 'TEXT',
+            messageContent: incomingText,
+            sentAt: new Date(),
+        });
+
+        if (isSimulator) {
+            // Log bot fallback message
+            await Message.create({
+                sessionId: session._id,
+                sender: 'BOT',
+                messageType: 'TEXT',
+                messageContent: fallbackMessage,
+                sentAt: new Date(),
+            });
+            return { handled: true, responses: [{ type: 'text', content: fallbackMessage }] };
+        } else {
+            // Send via WhatsApp
+            const waAccount = await WhatsAppAccount.findOne({ botId: session.botId });
+            if (waAccount) {
+                const accessToken = decrypt(waAccount.accessToken);
+                await whatsappService.sendTextMessage(
+                    waAccount.phoneNumberId,
+                    accessToken,
+                    session.userPhoneNumber,
+                    fallbackMessage
+                );
+            }
+            // Log bot fallback message
+            await Message.create({
+                sessionId: session._id,
+                sender: 'BOT',
+                messageType: 'TEXT',
+                messageContent: fallbackMessage,
+                sentAt: new Date(),
+            });
+            return { handled: true, responses: [] };
+        }
+    }
+
+    // 4. Not at INPUT, not a keyword, not at BUTTON — let executeFlow handle normally
+    return { handled: false };
+};
+
 /**
  * Execute a single node and potentially chain to the next
  */
@@ -309,6 +438,7 @@ const executeButtonNode = async (context: IExecutionContext, node: IFlowNode): P
     if (matchedEdge) {
         await sessionService.updateSessionState(context.session._id, { status: 'ACTIVE' });
         context.incomingButtonId = undefined; // Consume the click
+        context.incomingMessage = undefined; // Consume any associated text
         return matchedEdge.targetNodeId;
     }
 
@@ -321,6 +451,7 @@ const executeButtonNode = async (context: IExecutionContext, node: IFlowNode): P
         }
         await sessionService.updateSessionState(context.session._id, { status: 'ACTIVE' });
         context.incomingButtonId = undefined;
+        context.incomingMessage = undefined; // Consume any associated text
         const nextNodeId2 = (clickedButton as unknown as { nextNodeId?: string }).nextNodeId;
         return nextNodeId2;
     }
@@ -401,7 +532,9 @@ const executeInputNode = async (context: IExecutionContext, node: IFlowNode): Pr
         await setSessionVariable(context.session._id, config.variableName, value, config.inputType === 'NUMBER' ? 'NUMBER' : 'STRING');
         await sessionService.updateSessionState(context.session._id, { status: 'ACTIVE' });
         context.incomingMessage = undefined; // Consume
-        return config.successNextNodeId;
+        // Check config first, then fall back to edges
+        const nextEdge = context.flowData.edges.find((e) => e.sourceNodeId === node.nodeId);
+        return config.successNextNodeId || nextEdge?.targetNodeId;
     }
 
     // Invalid input — retry logic
@@ -414,7 +547,9 @@ const executeInputNode = async (context: IExecutionContext, node: IFlowNode): Pr
         // Max retries reached
         await setSessionVariable(context.session._id, retryCountVar, 0, 'NUMBER');
         await sessionService.updateSessionState(context.session._id, { status: 'ACTIVE' });
-        return config.retryConfig?.failureNextNodeId;
+        // Check config first, then fall back to edges
+        const failEdge = context.flowData.edges.find((e) => e.sourceNodeId === node.nodeId);
+        return config.retryConfig?.failureNextNodeId || failEdge?.targetNodeId;
     }
 
     // Increment retries and send retry message

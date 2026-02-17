@@ -249,11 +249,27 @@ const processIncomingMessage = async (
         console.log(`  Text: "${incomingText || '(none)'}"`);
         console.log(`  Button ID: "${buttonId || '(none)'}"`);
 
-        // Step 7: Execute flow
-        console.log(`[Process Message] 🚀 Executing flow...`);
-        const result = await executionService.executeFlow(session, incomingText, buttonId, false);
-        console.log(`[Process Message] ✅ Flow execution complete`);
-        console.log(`  Responses sent: ${result.responses.length}`);
+        // Step 7: Handle keywords and fallback before executing flow
+        console.log(`[Process Message] 🚀 Checking for restart keywords / fallback...`);
+        const keywordResult = await executionService.handleIncomingMessageWithKeywords(
+            session,
+            incomingText,
+            buttonId,
+            false
+        );
+
+        if (keywordResult.handled) {
+            console.log(`[Process Message] ✅ Message handled by keyword/fallback logic`);
+            if (keywordResult.newSession) {
+                session = keywordResult.newSession;
+            }
+        } else {
+            // Normal flow execution
+            console.log(`[Process Message] 🚀 Executing flow normally...`);
+            const result = await executionService.executeFlow(session, incomingText, buttonId, false);
+            console.log(`[Process Message] ✅ Flow execution complete`);
+            console.log(`  Responses sent: ${result.responses.length}`);
+        }
 
         // Check updated session state
         const updatedSession = await Session.findById(session._id);

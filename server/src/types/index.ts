@@ -44,6 +44,7 @@ export interface IBot extends Document {
     name: string;
     description?: string;
     activeFlowId?: Types.ObjectId;
+    defaultFallbackMessage?: string;
     createdAt: Date;
     updatedAt: Date;
 }

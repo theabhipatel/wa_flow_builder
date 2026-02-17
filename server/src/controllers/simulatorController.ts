@@ -27,15 +27,31 @@ export const sendSimulatorMessage = async (req: Request, res: Response, next: Ne
         const testPhone = phoneNumber || '+1000000000';
 
         // Find or create test session
-        const session = await sessionService.findOrCreateSession(
+        let session = await sessionService.findOrCreateSession(
             bot._id,
             testPhone,
             draftVersion._id,
             true
         );
 
-        // Execute flow
-        const result = await executionService.executeFlow(session, message, buttonId, true);
+        // Handle keywords and fallback before executing flow
+        const keywordResult = await executionService.handleIncomingMessageWithKeywords(
+            session,
+            message,
+            buttonId,
+            true
+        );
+
+        let result;
+        if (keywordResult.handled) {
+            result = { responses: keywordResult.responses || [] };
+            if (keywordResult.newSession) {
+                session = keywordResult.newSession;
+            }
+        } else {
+            // Normal flow execution
+            result = await executionService.executeFlow(session, message, buttonId, true);
+        }
 
         // Get updated session info
         const updatedSession = await Session.findById(session._id);

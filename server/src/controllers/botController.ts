@@ -120,11 +120,11 @@ export const updateBot = async (req: Request, res: Response, next: NextFunction)
     try {
         const { botId } = req.params;
         const userId = req.user!.userId;
-        const { name, description } = req.body;
+        const { name, description, defaultFallbackMessage } = req.body;
 
         const bot = await Bot.findOneAndUpdate(
             { _id: botId, userId },
-            { name, description },
+            { name, description, defaultFallbackMessage },
             { new: true }
         );
 
