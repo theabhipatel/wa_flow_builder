@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { type Node } from '@xyflow/react';
 import { X, Trash2, Plus, Lock, Link, FileText, Package, Timer, Download, AlertTriangle, Lightbulb, SlidersHorizontal, BarChart3 } from 'lucide-react';
 import api from '../../lib/api';
@@ -25,6 +25,9 @@ interface SubflowOption {
 const MAX_BUTTONS = 3;
 const MAX_BODY_TEXT_CHARS = 1024;
 const MAX_BUTTON_LABEL_CHARS = 20;
+const DEFAULT_PANEL_WIDTH = 320;
+const MAX_PANEL_WIDTH = 640; // 200% of default
+const MIN_PANEL_WIDTH = 280;
 
 export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange, onDelete, onClose }: Props) {
     const { botId, flowId } = useParams();
@@ -119,8 +122,52 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
     const messageText = (config.messageText as string) || '';
     const bodyTextCharsLeft = MAX_BODY_TEXT_CHARS - messageText.length;
 
+    // ---- Resize logic ----
+    const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
+    const isResizing = useRef(false);
+    const startX = useRef(0);
+    const startWidth = useRef(DEFAULT_PANEL_WIDTH);
+
+    const onResizeStart = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        isResizing.current = true;
+        startX.current = e.clientX;
+        startWidth.current = panelWidth;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        const onMouseMove = (ev: MouseEvent) => {
+            if (!isResizing.current) return;
+            // Dragging left = larger panel (panel is on the right side)
+            const delta = startX.current - ev.clientX;
+            const newWidth = Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, startWidth.current + delta));
+            setPanelWidth(newWidth);
+        };
+
+        const onMouseUp = () => {
+            isResizing.current = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }, [panelWidth]);
+
     return (
-        <div className="w-80 bg-white dark:bg-surface-900 border-l border-surface-200 dark:border-surface-700 flex flex-col overflow-hidden">
+        <div
+            className="bg-white dark:bg-surface-900 border-l border-surface-200 dark:border-surface-700 flex flex-col overflow-hidden relative"
+            style={{ width: panelWidth, minWidth: MIN_PANEL_WIDTH, maxWidth: MAX_PANEL_WIDTH, transition: isResizing.current ? 'none' : 'width 0.15s ease' }}
+        >
+            {/* Resize handle */}
+            <div
+                onMouseDown={onResizeStart}
+                className="absolute left-0 top-0 bottom-0 w-1.5 z-20 cursor-col-resize group"
+            >
+                <div className="absolute inset-y-0 left-0 w-[3px] bg-transparent group-hover:bg-purple-500/50 transition-colors duration-150" />
+            </div>
             {/* Header */}
             <div className="p-4 border-b border-surface-200 dark:border-surface-700 flex items-center justify-between">
                 <div>
