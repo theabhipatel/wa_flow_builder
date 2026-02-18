@@ -143,9 +143,11 @@ export default function FlowListPage() {
                                 >
                                     Open Builder
                                 </button>
-                                <button onClick={() => setConfirmModal({ isOpen: true, flowId: flow._id })} className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-surface-400 hover:text-red-500 transition-all">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                {!flow.isMainFlow && (
+                                    <button onClick={() => setConfirmModal({ isOpen: true, flowId: flow._id })} className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-surface-400 hover:text-red-500 transition-all">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
