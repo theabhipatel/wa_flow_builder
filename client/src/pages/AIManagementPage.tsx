@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../lib/api';
 import {
     Plus, Edit2, Trash2, Loader2, Check, X, TestTube2,
     Brain, Activity, BarChart3, AlertCircle, CheckCircle2,
-    Clock, Zap, ChevronLeft, ChevronRight,
+    Clock, Zap, ChevronLeft, ChevronRight, ChevronDown,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -86,8 +86,8 @@ export default function AIManagementPage() {
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
                         className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.key
-                                ? 'bg-white dark:bg-surface-700 text-purple-600 dark:text-purple-400 shadow-sm'
-                                : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                            ? 'bg-white dark:bg-surface-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                            : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
                             }`}
                     >
                         <tab.icon className="w-4 h-4" />
@@ -266,15 +266,11 @@ function ProvidersTab() {
                         </div>
                         <div>
                             <label className="input-label">Provider</label>
-                            <select
+                            <CustomSelect
                                 value={formData.provider}
-                                onChange={(e) => handleProviderChange(e.target.value)}
-                                className="input-field"
-                            >
-                                {PROVIDER_OPTIONS.map((opt) => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
+                                onChange={(val) => handleProviderChange(val)}
+                                options={PROVIDER_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+                            />
                         </div>
                         <div>
                             <label className="input-label">API Key</label>
@@ -355,8 +351,11 @@ function ProvidersTab() {
                         </div>
                         <div className="flex items-center gap-2">
                             {testResult?.id === provider._id && (
-                                <span className={`text-xs font-medium ${testResult.valid ? 'text-emerald-600' : 'text-red-500'}`}>
-                                    {testResult.valid ? '✅ Valid' : '❌ Invalid'}
+                                <span className={`text-xs font-medium flex items-center gap-1 ${testResult.valid ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {testResult.valid
+                                        ? <><CheckCircle2 className="w-3.5 h-3.5" /> Valid</>
+                                        : <><AlertCircle className="w-3.5 h-3.5" /> Invalid</>
+                                    }
                                 </span>
                             )}
                             <button
@@ -435,15 +434,16 @@ function LogsTab() {
         <div className="space-y-4">
             {/* Filters */}
             <div className="flex items-center gap-3">
-                <select
+                <CustomSelect
                     value={statusFilter}
-                    onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                    className="input-field w-40 text-sm"
-                >
-                    <option value="">All Status</option>
-                    <option value="SUCCESS">✅ Success</option>
-                    <option value="ERROR">❌ Error</option>
-                </select>
+                    onChange={(val) => { setStatusFilter(val); setPage(1); }}
+                    options={[
+                        { value: '', label: 'All Status' },
+                        { value: 'SUCCESS', label: 'Success', icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> },
+                        { value: 'ERROR', label: 'Error', icon: <AlertCircle className="w-3.5 h-3.5 text-red-500" /> },
+                    ]}
+                    className="w-44"
+                />
                 <span className="text-xs text-surface-500">Showing page {page} of {totalPages}</span>
             </div>
 
@@ -669,6 +669,66 @@ function StatCard({ label, value, icon, color }: { label: string; value: string;
         <div className={`card p-4 bg-gradient-to-br ${colorMap[color]}`}>
             <div className="flex items-center gap-2 mb-2">{icon}<span className="text-xs font-medium">{label}</span></div>
             <p className="text-2xl font-bold">{value}</p>
+        </div>
+    );
+}
+
+// ─── Custom Select Component ────────────────────────────────────
+function CustomSelect({
+    value,
+    onChange,
+    options,
+    className = '',
+}: {
+    value: string;
+    onChange: (value: string) => void;
+    options: Array<{ value: string; label: string; icon?: React.ReactNode }>;
+    className?: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
+
+    const selected = options.find((o) => o.value === value) || options[0];
+
+    return (
+        <div ref={ref} className={`relative ${className}`}>
+            <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 hover:border-purple-300 dark:hover:border-purple-600 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            >
+                <span className="flex items-center gap-2 truncate">
+                    {selected?.icon}
+                    {selected?.label}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-surface-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+            </button>
+            {open && (
+                <div className="absolute z-50 mt-1 w-full min-w-[160px] rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-lg shadow-black/10 dark:shadow-black/30 py-1 animate-fade-in">
+                    {options.map((opt) => (
+                        <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { onChange(opt.value); setOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${opt.value === value
+                                    ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 font-medium'
+                                    : 'text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50'
+                                }`}
+                        >
+                            {opt.icon}
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
