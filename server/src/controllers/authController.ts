@@ -46,6 +46,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
                     lastName: user.lastName,
                     email: user.email,
                     role: user.role,
+                    createdAt: user.createdAt,
                 },
             },
         });
@@ -101,6 +102,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
                     lastName: user.lastName,
                     email: user.email,
                     role: user.role,
+                    createdAt: user.createdAt,
                 },
             },
         });
@@ -130,8 +132,90 @@ export const getMe = async (req: Request, res: Response, next: NextFunction): Pr
                 lastName: user.lastName,
                 email: user.email,
                 role: user.role,
+                createdAt: user.createdAt,
             },
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ success: false, error: 'Not authenticated' });
+            return;
+        }
+
+        const { firstName, lastName } = req.body;
+
+        if (!firstName || !lastName) {
+            res.status(400).json({ success: false, error: 'First name and last name are required' });
+            return;
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.user.userId,
+            { firstName: firstName.trim(), lastName: lastName.trim() },
+            { new: true, runValidators: true }
+        ).select('-passwordHash');
+
+        if (!user) {
+            res.status(404).json({ success: false, error: 'User not found' });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                id: user._id.toString(),
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                createdAt: user.createdAt,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ success: false, error: 'Not authenticated' });
+            return;
+        }
+
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            res.status(400).json({ success: false, error: 'Current password and new password are required' });
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            res.status(400).json({ success: false, error: 'New password must be at least 6 characters' });
+            return;
+        }
+
+        const user = await User.findById(req.user.userId);
+        if (!user) {
+            res.status(404).json({ success: false, error: 'User not found' });
+            return;
+        }
+
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isPasswordValid) {
+            res.status(401).json({ success: false, error: 'Current password is incorrect' });
+            return;
+        }
+
+        user.passwordHash = await bcrypt.hash(newPassword, 10);
+        await user.save();
+
+        res.json({ success: true, message: 'Password changed successfully' });
     } catch (error) {
         next(error);
     }

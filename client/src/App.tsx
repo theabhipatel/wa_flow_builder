@@ -9,6 +9,7 @@ import FlowListPage from './pages/FlowListPage';
 import FlowBuilderPage from './pages/FlowBuilderPage';
 import AIManagementPage from './pages/AIManagementPage';
 import AdminPage from './pages/AdminPage';
+import ProfilePage from './pages/ProfilePage';
 import Layout from './components/Layout/Layout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,7 @@ function App() {
                 <Route path="bots/:botId/flows" element={<FlowListPage />} />
                 <Route path="ai-management" element={<AIManagementPage />} />
                 <Route path="admin" element={<AdminPage />} />
+                <Route path="profile" element={<ProfilePage />} />
             </Route>
             <Route
                 path="/builder/:botId/:flowId"

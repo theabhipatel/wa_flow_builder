@@ -17,6 +17,7 @@ export interface IUser {
     lastName: string;
     email: string;
     role: TUserRole;
+    createdAt?: string;
 }
 
 export interface IAuthResponse {

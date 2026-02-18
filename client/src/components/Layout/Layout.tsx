@@ -82,19 +82,24 @@ export default function Layout() {
                     ))}
                 </nav>
 
-                {/* User section */}
+                {/* User section — clickable to profile */}
                 <div className="p-3 border-t border-surface-200 dark:border-surface-700">
-                    <div className="flex items-center gap-3 px-3 py-2">
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700/50 transition-colors group"
+                    >
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-xs font-bold">{user?.email?.[0]?.toUpperCase()}</span>
+                            <span className="text-white text-xs font-bold">
+                                {(user?.firstName?.[0] || '').toUpperCase()}{(user?.lastName?.[0] || '').toUpperCase()}
+                            </span>
                         </div>
                         {sidebarOpen && (
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{user?.email}</p>
-                                <p className="text-xs text-surface-500 capitalize">{user?.role?.toLowerCase()}</p>
+                            <div className="flex-1 min-w-0 text-left">
+                                <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                                <p className="text-xs text-surface-500 truncate">{user?.email}</p>
                             </div>
                         )}
-                    </div>
+                    </button>
                 </div>
             </aside>
 
