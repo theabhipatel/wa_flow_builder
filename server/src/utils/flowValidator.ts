@@ -99,9 +99,16 @@ export const validateFlow = (flowData: IFlowData): IValidationResult => {
                 break;
             }
             case 'LOOP': {
-                const config = node.config as { maxIterations?: number };
-                if (!config.maxIterations || config.maxIterations <= 0) {
-                    errors.push({ nodeId: node.nodeId, field: 'maxIterations', message: 'Max iterations must be set' });
+                const config = node.config as { loopType?: string; arrayVariable?: string; iterationCount?: number; continueCondition?: string; maxIterations?: number };
+                const loopType = config.loopType || 'COUNT_BASED';
+                if (loopType === 'FOR_EACH' && (!config.arrayVariable || config.arrayVariable.trim() === '')) {
+                    errors.push({ nodeId: node.nodeId, field: 'arrayVariable', message: 'Array variable is required for For Each loops' });
+                }
+                if (loopType === 'COUNT_BASED' && (!config.iterationCount || config.iterationCount <= 0) && (!config.maxIterations || config.maxIterations <= 0)) {
+                    errors.push({ nodeId: node.nodeId, field: 'iterationCount', message: 'Iteration count must be set for Count Based loops' });
+                }
+                if (loopType === 'CONDITION_BASED' && (!config.continueCondition || config.continueCondition.trim() === '')) {
+                    errors.push({ nodeId: node.nodeId, field: 'continueCondition', message: 'Continue condition is required for Condition Based loops' });
                 }
                 break;
             }
