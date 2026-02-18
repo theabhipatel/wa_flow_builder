@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { type Node } from '@xyflow/react';
-import { X, Trash2, Plus } from 'lucide-react';
+import { X, Trash2, Plus, Lock, Link, FileText, Package, Timer, Download, AlertTriangle, Lightbulb, SlidersHorizontal, BarChart3 } from 'lucide-react';
 import api from '../../lib/api';
 import { useParams } from 'react-router-dom';
 
@@ -363,7 +363,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>🔐 Authentication</span>
+                                <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> Authentication</span>
                                 <span className="text-[10px] text-surface-400">{(config.authType as string) || 'None'}</span>
                             </button>
                             <div id="api-auth-section" className="px-3 pb-3 space-y-3">
@@ -491,7 +491,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>🔗 Query Parameters</span>
+                                <span className="flex items-center gap-1.5"><Link className="w-3.5 h-3.5" /> Query Parameters</span>
                                 <span className="text-[10px] text-surface-400">{((config.queryParams as Array<{ key: string; value: string }>) || []).length} params</span>
                             </button>
                             <div id="api-params-section" className="px-3 pb-3 space-y-2">
@@ -550,7 +550,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>📋 Headers</span>
+                                <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Headers</span>
                                 <span className="text-[10px] text-surface-400">{((config.headers as Array<{ key: string; value: string }>) || []).length} headers</span>
                             </button>
                             <div id="api-headers-section" className="px-3 pb-3 space-y-2">
@@ -603,7 +603,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                         {!['GET', 'DELETE'].includes(((config.method as string) || 'GET').toUpperCase()) && (
                             <div className="border border-surface-200 dark:border-surface-700 rounded-lg">
                                 <div className="px-3 py-2">
-                                    <label className="input-label !mb-2">📦 Request Body</label>
+                                    <label className="input-label !mb-2">Request Body</label>
                                     <div className="mb-2">
                                         <label className="input-label">Content Type</label>
                                         <select
@@ -653,7 +653,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>⏱️ Timeout & Retry</span>
+                                <span className="flex items-center gap-1.5"><Timer className="w-3.5 h-3.5" /> Timeout & Retry</span>
                                 <span className="text-[10px] text-surface-400">{(config.timeout as number) || 10}s / Retry: {config.retryEnabled ? 'On' : 'Off'}</span>
                             </button>
                             <div id="api-timeout-section" className="px-3 pb-3 space-y-3">
@@ -720,7 +720,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>📥 Response Handling</span>
+                                <span className="flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Response Handling</span>
                                 <span className="text-[10px] text-surface-400">{((config.responseMapping as Array<unknown>) || []).length} mappings</span>
                             </button>
                             <div id="api-response-section" className="px-3 pb-3 space-y-3">
@@ -824,7 +824,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>⚠️ Error Handling</span>
+                                <span className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> Error Handling</span>
                                 <span className="text-[10px] text-surface-400">{(config.errorVariable as string) ? 'Configured' : 'Optional'}</span>
                             </button>
                             <div id="api-error-section" className="px-3 pb-3 space-y-3">
@@ -843,7 +843,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
 
                         {/* ─── Usage Tips ─── */}
                         <div className="bg-violet-50 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-800 rounded-lg p-3">
-                            <p className="text-xs font-semibold text-violet-700 dark:text-violet-400 mb-1">💡 Tips</p>
+                            <p className="text-xs font-semibold text-violet-700 dark:text-violet-400 mb-1"><Lightbulb className="w-3.5 h-3.5 inline mr-1" />Tips</p>
                             <ul className="text-xs text-violet-600 dark:text-violet-400 space-y-1 list-disc list-inside">
                                 <li>Use <code className="bg-violet-100 dark:bg-violet-900/30 px-1 rounded">{'{{variable}}'}</code> in URL, headers, body, and auth fields</li>
                                 <li>For arrays, use <strong>Response Mapping</strong> with <code className="bg-violet-100 dark:bg-violet-900/30 px-1 rounded">data.0.name</code> for first item</li>
@@ -959,7 +959,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>🎛️ Advanced Parameters</span>
+                                <span className="flex items-center gap-1.5"><SlidersHorizontal className="w-3.5 h-3.5" /> Advanced Parameters</span>
                                 <span className="text-[10px] text-surface-400">T:{(config.temperature as number) ?? 0.7}</span>
                             </button>
                             <div id="ai-params-section" className="hidden px-3 pb-3 space-y-3">
@@ -1047,7 +1047,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>📥 Response Handling</span>
+                                <span className="flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Response Handling</span>
                                 <span className="text-[10px] text-surface-400">{(config.responseVariable as string) || 'ai_response'}</span>
                             </button>
                             <div id="ai-response-section" className="hidden px-3 pb-3 space-y-3">
@@ -1149,7 +1149,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>📊 Token Usage</span>
+                                <span className="flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Token Usage</span>
                                 <span className="text-[10px] text-surface-400">{config.storeTokenUsage ? 'Tracking' : 'Off'}</span>
                             </button>
                             <div id="ai-token-section" className="hidden px-3 pb-3 space-y-3">
@@ -1188,7 +1188,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>⚠️ Error Handling</span>
+                                <span className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> Error Handling</span>
                                 <span className="text-[10px] text-surface-400">{(config.errorVariable as string) ? 'Configured' : 'Optional'}</span>
                             </button>
                             <div id="ai-error-section" className="hidden px-3 pb-3 space-y-3">
@@ -1226,7 +1226,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 rounded-lg transition-colors"
                             >
-                                <span>⏱️ Timeout & Retry</span>
+                                <span className="flex items-center gap-1.5"><Timer className="w-3.5 h-3.5" /> Timeout & Retry</span>
                                 <span className="text-[10px] text-surface-400">{(config.timeout as number) || 30}s / Retry: {config.retryEnabled ? 'On' : 'Off'}</span>
                             </button>
                             <div id="ai-timeout-section" className="hidden px-3 pb-3 space-y-3">
@@ -1282,7 +1282,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
 
                         {/* ─── Tips ─── */}
                         <div className="bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
-                            <p className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-1">💡 Tips</p>
+                            <p className="text-xs font-semibold text-purple-700 dark:text-purple-400 mb-1"><Lightbulb className="w-3.5 h-3.5 inline mr-1" />Tips</p>
                             <ul className="text-xs text-purple-600 dark:text-purple-400 space-y-1 list-disc list-inside">
                                 <li>Use <code className="bg-purple-100 dark:bg-purple-900/30 px-1 rounded">{'{{variable}}'}</code> in prompts for dynamic content</li>
                                 <li>Success/Error edges let you branch on AI API results</li>
