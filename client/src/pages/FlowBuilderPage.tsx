@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -49,7 +49,7 @@ function FlowBuilderInner() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { flowData, isDirty, selectedNodeId, lastSaved } = useSelector((state: RootState) => state.builder);
-    const { fitView, getNodes: getRfNodes, getEdges: getRfEdges } = useReactFlow();
+    const { fitView, getNodes: getRfNodes, getEdges: getRfEdges, screenToFlowPosition } = useReactFlow();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -66,7 +66,7 @@ function FlowBuilderInner() {
         onConfirm: () => void;
         variant?: 'danger' | 'warning';
         confirmLabel?: string;
-    }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
     // React Flow state — typed explicitly
     const [nodes, setNodes] = useState<Node[]>([]);
@@ -284,24 +284,43 @@ function FlowBuilderInner() {
         dispatch(selectNode(null));
     }, [dispatch]);
 
-    // Add new node from library — inject callbacks
-    const onAddNode = useCallback((nodeType: TNodeType) => {
-        const newNodeId = `${nodeType.toLowerCase()}_${Date.now()}`;
-        const newNode: Node = {
-            id: newNodeId,
-            type: 'flowNode',
-            position: { x: 250 + Math.random() * 200, y: 150 + Math.random() * 200 },
-            data: {
-                label: nodeType.charAt(0) + nodeType.slice(1).toLowerCase(),
-                nodeType,
-                config: {},
-                nodeId: newNodeId,
-                onDuplicate: handleNodeDuplicate,
-                onDelete: requestDeleteNode,
-            },
-        };
-        setNodes((nds) => [...nds, newNode]);
-    }, [setNodes, handleNodeDuplicate, requestDeleteNode]);
+    // Drag-and-drop from NodeLibrary
+    const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+    const onDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
+
+    const onDrop = useCallback(
+        (event: React.DragEvent) => {
+            event.preventDefault();
+            const nodeType = event.dataTransfer.getData('application/reactflow') as TNodeType;
+            if (!nodeType) return;
+
+            const position = screenToFlowPosition({
+                x: event.clientX,
+                y: event.clientY,
+            });
+
+            const newNodeId = `${nodeType.toLowerCase()}_${Date.now()}`;
+            const newNode: Node = {
+                id: newNodeId,
+                type: 'flowNode',
+                position,
+                data: {
+                    label: nodeType.charAt(0) + nodeType.slice(1).toLowerCase(),
+                    nodeType,
+                    config: {},
+                    nodeId: newNodeId,
+                    onDuplicate: handleNodeDuplicate,
+                    onDelete: requestDeleteNode,
+                },
+            };
+            setNodes((nds) => [...nds, newNode]);
+        },
+        [screenToFlowPosition, setNodes, handleNodeDuplicate, requestDeleteNode]
+    );
 
     // --- Auto-arrange nodes ---
     const handleAutoArrange = useCallback(() => {
@@ -474,10 +493,10 @@ function FlowBuilderInner() {
             {/* Main content */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Node Library sidebar */}
-                <NodeLibrary onAddNode={onAddNode} />
+                <NodeLibrary />
 
                 {/* Canvas */}
-                <div className="flex-1 relative">
+                <div className="flex-1 relative" ref={reactFlowWrapper}>
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
@@ -486,6 +505,8 @@ function FlowBuilderInner() {
                         onConnect={onConnect}
                         onNodeClick={onNodeClick}
                         onPaneClick={onPaneClick}
+                        onDrop={onDrop}
+                        onDragOver={onDragOver}
                         nodeTypes={nodeTypes}
                         edgeTypes={edgeTypes}
                         defaultEdgeOptions={{
