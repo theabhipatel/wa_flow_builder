@@ -39,7 +39,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto animate-fade-in">
             <div className="mb-8">
                 <h1 className="text-2xl font-bold">
-                    Welcome back, <span className="gradient-text">{user?.email?.split('@')[0]}</span>
+                    Welcome back, <span className="gradient-text">{user?.firstName || user?.email?.split('@')[0]}</span>
                 </h1>
                 <p className="text-surface-500 mt-1">Here's an overview of your platform.</p>
             </div>
