@@ -1259,6 +1259,7 @@ const executeAiNode = async (context: IExecutionContext, node: IFlowNode): Promi
         let baseUrl: string;
         let providerName = 'Custom';
         let providerType = 'CUSTOM';
+        let providerDefaultModel = '';
         let aiProviderId: import('mongoose').Types.ObjectId | undefined;
 
         if (config.aiProviderId) {
@@ -1275,6 +1276,7 @@ const executeAiNode = async (context: IExecutionContext, node: IFlowNode): Promi
             providerName = provider.name;
             providerType = provider.provider;
             aiProviderId = provider._id;
+            providerDefaultModel = provider.defaultModel || '';
         } else if (config.customApiKey && config.customBaseUrl) {
             // Inline override — resolve variables
             apiKey = await resolveVariables(config.customApiKey, context.session._id, context.session.botId);
@@ -1333,7 +1335,7 @@ const executeAiNode = async (context: IExecutionContext, node: IFlowNode): Promi
         const chatParams: aiService.IChatCompletionParams = {
             baseUrl,
             apiKey,
-            model: config.model || 'gpt-3.5-turbo',
+            model: config.model || providerDefaultModel || 'gpt-3.5-turbo',
             messages,
             temperature: config.temperature,
             maxTokens: config.maxTokens,

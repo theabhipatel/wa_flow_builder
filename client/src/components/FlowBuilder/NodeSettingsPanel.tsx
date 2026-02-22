@@ -1144,7 +1144,17 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                             <label className="input-label">AI Provider</label>
                             <select
                                 value={(config.aiProviderId as string) || ''}
-                                onChange={(e) => updateConfig('aiProviderId', e.target.value || undefined)}
+                                onChange={(e) => {
+                                    const selectedId = e.target.value || undefined;
+                                    updateConfig('aiProviderId', selectedId);
+                                    // Auto-populate model from provider's defaultModel if model is empty
+                                    if (selectedId) {
+                                        const selectedProvider = aiProviders.find(p => p._id === selectedId);
+                                        if (selectedProvider?.defaultModel && !(config.model as string)) {
+                                            updateConfig('model', selectedProvider.defaultModel);
+                                        }
+                                    }
+                                }}
                                 className="input-field"
                             >
                                 <option value="">— Select a provider —</option>
@@ -1165,8 +1175,19 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 value={(config.model as string) || ''}
                                 onChange={(e) => updateConfig('model', e.target.value)}
                                 className="input-field"
-                                placeholder="gpt-4o-mini"
+                                placeholder={
+                                    aiProviders.find(p => p._id === (config.aiProviderId as string))?.defaultModel
+                                    || 'gpt-4o-mini'
+                                }
                             />
+                            {(() => {
+                                const selectedProvider = aiProviders.find(p => p._id === (config.aiProviderId as string));
+                                return selectedProvider?.defaultModel && !(config.model as string) ? (
+                                    <p className="text-xs text-surface-500 mt-1">
+                                        Will use provider default: <span className="font-mono font-medium text-purple-500">{selectedProvider.defaultModel}</span>
+                                    </p>
+                                ) : null;
+                            })()}
                         </div>
 
                         {/* ─── System Prompt ─── */}
@@ -1570,6 +1591,7 @@ export default function NodeSettingsPanel({ node, onConfigChange, onLabelChange,
                                 <li>Success/Error edges let you branch on AI API results</li>
                                 <li>View logs and token usage in <strong>AI Management</strong></li>
                                 <li>Lower temperature = more consistent, higher = more creative</li>
+                                <li>If <strong>Send AI Response to User</strong> is enabled, avoid adding a Message node with <code className="bg-purple-100 dark:bg-purple-900/30 px-1 rounded">{'{{ai_response}}'}</code> after this node — it will cause duplicate messages</li>
                             </ul>
                         </div>
                     </>
