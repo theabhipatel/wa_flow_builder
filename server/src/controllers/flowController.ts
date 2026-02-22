@@ -354,6 +354,19 @@ export const deployFlow = async (req: Request, res: Response, next: NextFunction
             await Bot.findByIdAndUpdate(botId, { activeFlowId: mainFlow._id });
         }
 
+        // Cleanup: keep only last 3 non-draft versions per flow, delete older ones
+        const MAX_VERSIONS_TO_KEEP = 3;
+        for (const flow of allFlows) {
+            const archivedVersions = await FlowVersion.find({ flowId: flow._id, isDraft: false })
+                .sort({ versionNumber: -1 })
+                .select('_id');
+
+            if (archivedVersions.length > MAX_VERSIONS_TO_KEEP) {
+                const idsToDelete = archivedVersions.slice(MAX_VERSIONS_TO_KEEP).map((v) => v._id);
+                await FlowVersion.deleteMany({ _id: { $in: idsToDelete } });
+            }
+        }
+
         res.json({
             success: true,
             data: deployedVersions,
