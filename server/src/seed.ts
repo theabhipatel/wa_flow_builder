@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { User } from './models';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/whatsapp_flow_builder';
