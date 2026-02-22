@@ -6,7 +6,7 @@ import { ArrowLeft, Phone, Check, X, Plus, Trash2, Loader2, Save, Copy, Link, Sh
 import ConfirmModal from '../components/ConfirmModal';
 import { useToast } from '../components/Toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000');
 
 export default function BotSettingsPage() {
     const { botId } = useParams();

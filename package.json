@@ -1,0 +1,9 @@
+{
+    "private": true,
+    "name": "wa-flow-builder",
+    "version": "1.0.0",
+    "description": "WhatsApp Flow Builder - Full Stack",
+    "dependencies": {
+        "@vercel/node": "^3.0.0"
+    }
+}
