@@ -200,7 +200,7 @@ function FlowBuilderInner() {
             data: {
                 label: n.label || n.nodeType,
                 nodeType: n.nodeType,
-                config: n.config,
+                config: { ...getDefaultConfig(n.nodeType), ...n.config },
                 description: n.description,
                 nodeId: n.nodeId,
                 onDuplicate: handleNodeDuplicate,
@@ -297,6 +297,16 @@ function FlowBuilderInner() {
         event.dataTransfer.dropEffect = 'move';
     }, []);
 
+    // Helper: provide sensible default config per node type
+    const getDefaultConfig = (nodeType: TNodeType): Record<string, unknown> => {
+        switch (nodeType) {
+            case 'DELAY':
+                return { delaySeconds: 5 };
+            default:
+                return {};
+        }
+    };
+
     const onDrop = useCallback(
         (event: React.DragEvent) => {
             event.preventDefault();
@@ -316,7 +326,7 @@ function FlowBuilderInner() {
                 data: {
                     label: nodeType.charAt(0) + nodeType.slice(1).toLowerCase(),
                     nodeType,
-                    config: {},
+                    config: getDefaultConfig(nodeType),
                     nodeId: newNodeId,
                     onDuplicate: handleNodeDuplicate,
                     onDelete: requestDeleteNode,
