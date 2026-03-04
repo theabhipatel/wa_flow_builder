@@ -367,7 +367,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, or documentation
 
 ### Guidelines
 
-- **All pull requests should target the `dev` branch** — do not open PRs against `main`.
+- **All pull requests should target the `dev` branch** — do not open PRs against `master`.
 - For **large features or architectural changes**, please open an issue first to discuss the approach before writing code.
 - Make sure your changes don't break existing functionality.
 - Follow the existing code style and project structure.
