@@ -85,7 +85,6 @@ export const chatCompletion = async (
             requestBody.response_format = { type: 'json_object' };
         }
 
-        console.log(`[AI Service] Calling ${url} with model=${params.model}`);
 
         const response = await axios.post(url, requestBody, {
             headers: {
@@ -116,7 +115,6 @@ export const chatCompletion = async (
             responseTimeMs,
         });
 
-        console.log(`[AI Service] ✅ Success: ${usage.totalTokens} tokens in ${responseTimeMs}ms`);
 
         return {
             success: true,
@@ -181,7 +179,6 @@ export const chatCompletionWithRetry = async (
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         if (attempt > 0) {
-            console.log(`[AI Service] Retry ${attempt}/${maxRetries} after ${retryDelay}ms...`);
             await new Promise((resolve) => setTimeout(resolve, retryDelay));
         }
 
@@ -193,7 +190,6 @@ export const chatCompletionWithRetry = async (
 
         // Don't retry on client errors (4xx) — only on server/timeout
         if (lastResult.errorCode && parseInt(lastResult.errorCode) >= 400 && parseInt(lastResult.errorCode) < 500) {
-            console.log(`[AI Service] Client error ${lastResult.errorCode}, not retrying`);
             return lastResult;
         }
     }

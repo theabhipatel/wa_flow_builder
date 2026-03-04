@@ -100,7 +100,6 @@ export default function SimulatorPanel({ botId, flowId, onClose }: Props) {
 
             // Safety: stop polling after 20 attempts (~60s) to prevent infinite polling
             if (pollAttemptsRef.current > 20) {
-                console.log('[Simulator] Max poll attempts reached, stopping');
                 stopPolling();
                 return;
             }

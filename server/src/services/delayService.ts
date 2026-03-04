@@ -24,7 +24,6 @@ export const startDelayCron = (): void => {
 
                     // Check if this is a simulator (test) session
                     const isSimulator = session.isTest === true;
-                    console.log(`[DelayCron] Resuming session ${session._id} (isSimulator: ${isSimulator})`);
 
                     // Resume execution with the correct isSimulator flag
                     // Note: executeMessageNode/executeButtonNode already store messages in DB,

@@ -72,12 +72,6 @@ export const executeFlow = async (
     incomingButtonId?: string,
     isSimulator: boolean = false
 ): Promise<{ responses: Array<{ type: string; content: string; buttons?: Array<{ id: string; label: string }> }> }> => {
-    const mode = isSimulator ? '🧪 SIMULATOR' : '📱 WHATSAPP';
-    console.log(`\n[Execution] ${mode} — executeFlow called`);
-    console.log(`  Session ID: ${session._id}`);
-    console.log(`  Current node: ${session.currentNodeId}`);
-    console.log(`  Incoming message: "${incomingMessage || '(none)'}"`);
-    console.log(`  Incoming button ID: "${incomingButtonId || '(none)'}"`);
 
     // Load flow version
     const flowVersion = await FlowVersion.findById(session.flowVersionId);
@@ -85,7 +79,6 @@ export const executeFlow = async (
         console.error(`[Execution] ❌ Flow version not found: ${session.flowVersionId}`);
         throw new Error('Flow version not found');
     }
-    console.log(`[Execution] ✅ Loaded flow version v${flowVersion.versionNumber} (nodes: ${flowVersion.flowData?.nodes?.length}, edges: ${flowVersion.flowData?.edges?.length})`);
 
     // Get WhatsApp credentials if not simulator
     let phoneNumberId: string | undefined;
@@ -96,7 +89,6 @@ export const executeFlow = async (
         if (waAccount) {
             phoneNumberId = waAccount.phoneNumberId;
             accessToken = decrypt(waAccount.accessToken);
-            console.log(`[Execution] ✅ WhatsApp credentials loaded (phoneNumberId: ${phoneNumberId})`);
         } else {
             console.error(`[Execution] ❌ No WhatsApp account found — cannot send messages!`);
         }
@@ -128,7 +120,6 @@ export const executeFlow = async (
     // Execute the current node
     await executeNode(context);
 
-    console.log(`[Execution] ${mode} — Flow execution finished. Simulator responses: ${context.simulatorResponses.length}`);
     return { responses: context.simulatorResponses };
 };
 
@@ -178,14 +169,12 @@ export const handleIncomingMessageWithKeywords = async (
 
     // 1. INPUT node — allow all text through as-is (captures user input)
     if (currentNode && currentNode.nodeType === 'INPUT') {
-        console.log(`[Keywords] Current node is INPUT — bypassing keyword check, capturing input as-is`);
         return { handled: false };
     }
 
     // 2. Check for restart keywords
     const normalizedText = incomingText.trim().toLowerCase();
     if (RESTART_KEYWORDS.includes(normalizedText)) {
-        console.log(`[Keywords] 🔄 Restart keyword detected: "${incomingText}" — restarting flow`);
 
         // Close the current session
         await sessionService.closeSession(session._id);
@@ -207,7 +196,6 @@ export const handleIncomingMessageWithKeywords = async (
     // 3. At any non-INPUT node and user sent text (not a keyword) → send fallback
     //    This covers: BUTTON (waiting for click), MESSAGE (flow ended), and any other node
     if (currentNode) {
-        console.log(`[Keywords] ⚠️ Unexpected text at ${currentNode.nodeType} node — sending fallback message`);
 
         // Load the bot's custom fallback message
         const { Bot } = await import('../models');
@@ -272,7 +260,6 @@ const executeNode = async (context: IExecutionContext): Promise<void> => {
     const currentNodeId = session.currentNodeId;
 
     if (!currentNodeId) {
-        console.log(`[Execution] ⚠️ No current node ID — stopping`);
         return;
     }
 
@@ -284,7 +271,6 @@ const executeNode = async (context: IExecutionContext): Promise<void> => {
         return;
     }
 
-    console.log(`[Execution] ▶️ Executing node: "${node.nodeId}" (type: ${node.nodeType})`);
 
     const startTime = Date.now();
     let nextNodeId: string | undefined;
@@ -324,7 +310,6 @@ const executeNode = async (context: IExecutionContext): Promise<void> => {
                 break;
             case 'END':
                 await executeEndNode(context, node);
-                console.log(`[Execution] 🏁 END node reached — stopping`);
                 return; // Stop execution
             case 'GOTO_SUBFLOW':
                 nextNodeId = await executeGotoSubflowNode(context, node);
@@ -347,7 +332,6 @@ const executeNode = async (context: IExecutionContext): Promise<void> => {
         executedAt: new Date(),
     });
 
-    console.log(`[Execution] ${node.nodeType} "${node.nodeId}" → next: "${nextNodeId || '(none/paused)'}" (${duration}ms)`);
 
     // If we have a next node, continue execution
     if (nextNodeId && !error) {
@@ -358,7 +342,6 @@ const executeNode = async (context: IExecutionContext): Promise<void> => {
         if (nextNode) {
             // Always execute the next node — pausing nodes (BUTTON, INPUT) handle their
             // own pause logic internally by sending their prompt and returning undefined
-            console.log(`[Execution] ➡️ Chaining to next node: "${nextNodeId}" (${nextNode.nodeType})`);
             await executeNode(context);
         }
     } else if (!nextNodeId && !error) {
@@ -367,10 +350,8 @@ const executeNode = async (context: IExecutionContext): Promise<void> => {
         const isPaused = freshSession?.status === 'PAUSED';
 
         if (isPaused) {
-            console.log(`[Execution] ⏸️ Session is PAUSED — waiting for user input (not returning to parent flow)`);
             // Don't call handleSubflowReturn; the user needs to respond first
         } else {
-            console.log(`[Execution] 🔚 No next node — checking for subflow return`);
             await handleSubflowReturn(context);
         }
     }
@@ -389,7 +370,6 @@ const executeStartNode = async (context: IExecutionContext, node: IFlowNode): Pr
     // Find next node from edges
     const nextEdge = context.flowData.edges.find((e) => e.sourceNodeId === node.nodeId);
     const nextNodeId = config?.nextNodeId || nextEdge?.targetNodeId;
-    console.log(`[Execution] START node → nextNodeId from config: ${config?.nextNodeId || '(none)'}, from edge: ${nextEdge?.targetNodeId || '(none)'}`);
     return nextNodeId;
 };
 
@@ -588,7 +568,6 @@ const executeListNode = async (context: IExecutionContext, node: IFlowNode): Pro
         const fullListContent = listDetails
             ? `${resolvedText}\n\n${listDetails}`
             : resolvedText;
-        console.log(`[ConversationMessage] 📋 Saving LIST message for ${context.session.userPhoneNumber}:`, fullListContent.substring(0, 100));
         await logConversationMessage(context.session.botId, context.session.userPhoneNumber, 'BOT', fullListContent, 'LIST', context.isSimulator);
 
         // Pause and wait for user selection — session stays at this node
@@ -945,18 +924,15 @@ const executeDelayNode = async (context: IExecutionContext, node: IFlowNode): Pr
     const sessionId = context.session._id;
     const isSimulator = context.isSimulator;
 
-    console.log(`[Execution] ⏳ DELAY scheduled: ${seconds}s (${delayMs}ms), resumeAt: ${resumeAt.toISOString()}`);
 
     setTimeout(async () => {
         try {
             const freshSession = await Session.findById(sessionId);
             if (!freshSession || freshSession.status !== 'PAUSED' || !freshSession.resumeAt) {
                 // Already resumed by cron or session was closed/reset
-                console.log(`[DelayTimer] Session ${sessionId} already processed, skipping`);
                 return;
             }
 
-            console.log(`[DelayTimer] ⏰ Timer fired — resuming session ${sessionId} (isSimulator: ${isSimulator})`);
             freshSession.status = 'ACTIVE';
             freshSession.resumeAt = undefined;
             await freshSession.save();
@@ -1189,13 +1165,9 @@ const executeApiNode = async (context: IExecutionContext, node: IFlowNode): Prom
 
         // Response mapping (JSONPath → variable)
         if (config.responseMapping) {
-            console.log(`[API Node] Response mapping: ${config.responseMapping.length} mappings defined`);
-            console.log(`[API Node] responseData type: ${typeof responseData}, isArray: ${Array.isArray(responseData)}`);
-            console.log(`[API Node] responseData keys:`, typeof responseData === 'object' && responseData ? Object.keys(responseData as object) : 'N/A');
             for (const mapping of config.responseMapping) {
                 if (mapping.jsonPath && mapping.variableName) {
                     const value = getJsonPathValue(responseData, mapping.jsonPath);
-                    console.log(`[API Node] Mapping: "${mapping.jsonPath}" → "${mapping.variableName}" = `, value, `(type: ${typeof value})`);
                     if (value !== undefined) {
                         const varType = typeof value === 'number' ? 'NUMBER'
                             : typeof value === 'boolean' ? 'BOOLEAN'
@@ -1371,11 +1343,9 @@ const executeAiNode = async (context: IExecutionContext, node: IFlowNode): Promi
 
         // ─── Response Mapping ────────────────────────────────────
         if (config.responseMapping && config.responseMapping.length > 0) {
-            console.log(`[AI Node] Response mapping: ${config.responseMapping.length} mappings defined`);
             for (const mapping of config.responseMapping) {
                 if (mapping.jsonPath && mapping.variableName) {
                     const value = getJsonPathValue(result.rawResponse, mapping.jsonPath);
-                    console.log(`[AI Node] Mapping: "${mapping.jsonPath}" → "${mapping.variableName}" = `, value);
                     if (value !== undefined) {
                         const varType = typeof value === 'number' ? 'NUMBER'
                             : typeof value === 'boolean' ? 'BOOLEAN'
@@ -1463,16 +1433,6 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
     const sessionId = context.session._id;
     const botId = context.session.botId;
 
-    console.log(`[Loop] ▶ Executing LOOP node "${node.nodeId}" — mode: ${config.loopType || '(not set, defaulting)'}`);
-    console.log(`[Loop]   Config:`, JSON.stringify({
-        loopType: config.loopType,
-        arrayVariable: config.arrayVariable,
-        itemVariable: config.itemVariable,
-        maxIterations: config.maxIterations,
-        iterationCount: config.iterationCount,
-        loopBodyNextNodeId: config.loopBodyNextNodeId,
-        exitNextNodeId: config.exitNextNodeId,
-    }));
 
     // Default loopType — UI defaults to FOR_EACH, so server must match
     const loopType = config.loopType || 'FOR_EACH';
@@ -1481,7 +1441,6 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
     const iterationVar = config.currentIterationVariable || `__loop_${node.nodeId}_iter`;
     const vars = await getVariableMap(sessionId, botId);
     const currentIteration = (vars[iterationVar] as number) || 0;
-    console.log(`[Loop]   Current iteration: ${currentIteration}`);
 
     // ── Helper: find next node from edge handles ──
     const findEdgeTarget = (handleId: string): string | undefined => {
@@ -1504,7 +1463,6 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
     const doneTarget = config.exitNextNodeId || findEdgeTarget('done');
     const errorTarget = config.errorNextNodeId || findEdgeTarget('error');
 
-    console.log(`[Loop]   Edge targets — body: ${loopBodyTarget || '(none)'}, done: ${doneTarget || '(none)'}, error: ${errorTarget || '(none)'}`);
 
     if (!loopBodyTarget) {
         console.warn(`[Loop] ⚠️ No loop-body target found — make sure an edge is connected from the Loop Body handle`);
@@ -1529,7 +1487,6 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
     // ── Helper: handle loop exit (reset + go to done) ──
     const exitLoop = async (): Promise<string | undefined> => {
         await setSessionVariable(sessionId, iterationVar, 0, 'NUMBER');
-        console.log(`[Loop] ✅ Loop complete — exiting to done target`);
         return doneTarget;
     };
 
@@ -1623,7 +1580,6 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
             if (config.onEmptyArray === 'ERROR') {
                 return handleError(`Array variable "${config.arrayVariable}" is not a valid array`);
             }
-            console.log(`[Loop] Array variable "${config.arrayVariable}" is not an array — skipping to done`);
             await setSessionVariable(sessionId, iterationVar, 0, 'NUMBER');
             return doneTarget;
         }
@@ -1633,7 +1589,6 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
             if (config.onEmptyArray === 'ERROR') {
                 return handleError(`Array "${config.arrayVariable}" is empty`);
             }
-            console.log(`[Loop] Array is empty — skipping to done`);
             await setSessionVariable(sessionId, iterationVar, 0, 'NUMBER');
             return doneTarget;
         }
@@ -1648,14 +1603,10 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
 
         // Check if loop body has a return path (except on first iteration)
         if (currentIteration > 0 && !hasLoopBack()) {
-            console.log(`[Loop] ⚠️ No loop-back edge detected — stopping iterations`);
             await finalizeAccumulator();
             return exitLoop();
         }
-
-        // Get current item
         const currentItem = arrayData[currentIteration];
-        console.log(`[Loop] FOR_EACH iteration ${currentIteration + 1}/${totalItems}`);
 
         // Set item variable
         const itemVarName = config.itemVariable || `__loop_${node.nodeId}_item`;
@@ -1696,9 +1647,7 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
             return exitLoop();
         }
 
-        // Check loop-back (except first iteration)
         if (currentIteration > 0 && !hasLoopBack()) {
-            console.log(`[Loop] ⚠️ No loop-back edge detected — stopping iterations`);
             await finalizeAccumulator();
             return exitLoop();
         }
@@ -1706,7 +1655,6 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
         // Calculate counter value
         const counterValue = startVal + (currentIteration * stepVal);
         const counterVarName = config.counterVariable || `__loop_${node.nodeId}_counter`;
-        console.log(`[Loop] COUNT_BASED iteration ${currentIteration + 1}/${totalIterations} (counter: ${counterValue})`);
 
         await setSessionVariable(sessionId, counterVarName, counterValue, 'NUMBER');
 
@@ -1727,14 +1675,11 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
 
         // Safety: max iterations exceeded
         if (currentIteration >= maxIter) {
-            console.log(`[Loop] CONDITION_BASED — max iterations reached (${maxIter})`);
             await finalizeAccumulator();
             return exitLoop();
         }
 
-        // Check loop-back (except first iteration)
         if (currentIteration > 0 && !hasLoopBack()) {
-            console.log(`[Loop] ⚠️ No loop-back edge detected — stopping iterations`);
             await finalizeAccumulator();
             return exitLoop();
         }
@@ -1745,13 +1690,11 @@ const executeLoopNode = async (context: IExecutionContext, node: IFlowNode): Pro
         if (config.continueCondition) {
             const conditionResult = evaluateExpression(config.continueCondition, freshVars);
             if (!conditionResult) {
-                console.log(`[Loop] CONDITION_BASED — condition false, exiting`);
                 await finalizeAccumulator();
                 return exitLoop();
             }
         }
 
-        console.log(`[Loop] CONDITION_BASED iteration ${currentIteration + 1} (max: ${maxIter})`);
 
         // Set control variables
         await setControlVars(currentIteration, maxIter);

@@ -11,7 +11,6 @@ export const findOrCreateSession = async (
     flowVersionId: Types.ObjectId,
     isTest: boolean = false
 ): Promise<ISession> => {
-    console.log(`[Session] Looking for existing session: bot=${botId}, phone=${userPhoneNumber}, test=${isTest}`);
 
     // Look for an existing active/paused session
     let session = await Session.findOne({
@@ -21,11 +20,9 @@ export const findOrCreateSession = async (
     }).sort({ createdAt: -1 });
 
     if (session) {
-        console.log(`[Session] ✅ Found existing session: ${session._id} (status: ${session.status}, currentNode: ${session.currentNodeId})`);
         return session;
     }
 
-    console.log(`[Session] No existing session found — creating new one`);
 
     // Create a new session
     const flowVersion = await FlowVersion.findById(flowVersionId);
@@ -51,7 +48,6 @@ export const findOrCreateSession = async (
         isTest,
     });
 
-    console.log(`[Session] ✅ Created new session: ${session._id} (startNode: ${startNode.nodeId})`);
     return session;
 };
 

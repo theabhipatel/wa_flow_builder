@@ -35,13 +35,7 @@ export const resolveVariables = async (
         variableMap[sv.variableName] = parseStoredValue(sv.variableValue);
     }
 
-    // DEBUG: Log variable map keys and item variable specifically
-    console.log(`[Resolver] Resolving template: "${template}"`);
-    console.log(`[Resolver] Variable map keys:`, Object.keys(variableMap));
-    if (variableMap['item'] !== undefined) {
-        console.log(`[Resolver] "item" value type: ${typeof variableMap['item']}, isArray: ${Array.isArray(variableMap['item'])}`);
-        console.log(`[Resolver] "item" value:`, JSON.stringify(variableMap['item']).substring(0, 200));
-    }
+
 
     let resolved = template;
     for (const match of matches) {
@@ -57,7 +51,6 @@ export const resolveVariables = async (
         }
 
         const value = resolveNestedValue(variableMap, varPath);
-        console.log(`[Resolver] {{${varPath}}} → ${value !== undefined && value !== null ? `"${String(value).substring(0, 100)}"` : '(undefined)'}`);
 
         if (value !== undefined && value !== null) {
             resolved = resolved.replace(match, stringifyForTemplate(value));
