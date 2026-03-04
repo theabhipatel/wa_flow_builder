@@ -22,7 +22,7 @@
 
 A full-stack **WhatsApp chatbot builder** with a visual drag-and-drop flow editor. Design complex conversational flows, connect them to the WhatsApp Cloud API, and deploy — all from an intuitive web interface.
 
-Built with **React + TypeScript** on the frontend and **Node.js + Express + MongoDB** on the backend. Deployable to **Vercel** as a single project.
+Built with **React + TypeScript** on the frontend and **Node.js + Express + MongoDB** on the backend.
 
 ---
 
@@ -122,7 +122,8 @@ Built with **React + TypeScript** on the frontend and **Node.js + Express + Mong
 - **Morgan** — HTTP request logging (dev mode)
 
 ### Deployment
-- **Vercel** — serverless functions + static hosting
+- **Ubuntu VPS** or **Docker** — recommended for full feature support
+- **Vercel** — used for showcase only (limited serverless environment)
 
 ---
 
@@ -252,49 +253,13 @@ http://localhost:5173
 
 ---
 
-## 🌐 Deploying to Vercel
+## 🌐 Deployment
 
-This project is configured for **single-command Vercel deployment** — both frontend and backend deploy together.
+> **Note:** This application has been deployed to [Vercel](https://vercel.com) for showcase purposes, but not all features work properly in Vercel's serverless environment (e.g., delay node cron jobs, long-running flow executions, and WebSocket-like features require a persistent server process).
 
-### 1. Push to GitHub
+**Recommended deployment:** Deploy the backend on an **Ubuntu VPS** or inside **Docker containers** where the Node.js application can run as a long-lived process with full access to features like `node-cron`, in-memory timers, and persistent connections.
 
-Ensure your code is pushed to a GitHub repository.
-
-### 2. Import in Vercel
-
-1. Go to [vercel.com](https://vercel.com) and import your GitHub repository
-2. Vercel will auto-detect the `vercel.json` configuration
-
-### 3. Set Environment Variables
-
-In the Vercel dashboard → Project Settings → Environment Variables, add:
-
-| Variable | Value |
-|----------|-------|
-| `MONGODB_URI` | Your MongoDB Atlas connection string |
-| `JWT_SECRET` | A strong random secret key |
-| `ENCRYPTION_KEY` | 32-character encryption key |
-| `NODE_ENV` | `production` |
-| `CLIENT_URL` | Your Vercel deployment URL (e.g., `https://your-app.vercel.app`) |
-
-### 4. Deploy
-
-Click **Deploy** — Vercel will:
-1. Install dependencies for root, server, and client
-2. Build the React frontend (`client/dist/`)
-3. Deploy the Express API as a serverless function (`api/index.ts`)
-4. Route `/api/*` to the serverless function and everything else to the SPA
-
-### How It Works on Vercel
-
-```
-Incoming Request → Vercel Edge Network
-  ├── /api/*       → Serverless function (Express app)
-  ├── /assets/*    → Static files (Vite build output)
-  └── /*           → index.html (SPA client-side routing)
-```
-
-> **Note:** The delay node's cron job (`node-cron`) does not run in Vercel's serverless environment. For production use of delay nodes, consider using [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) or an external scheduler.
+For the frontend, you can either serve the built static files from the same server or host them on any static hosting provider (Vercel, Netlify, etc.).
 
 ---
 
@@ -398,13 +363,26 @@ The built-in **Simulator** lets you test flows without sending real WhatsApp mes
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Whether it's a bug fix, new feature, or documentation improvement — feel free to get involved.
+
+### Guidelines
+
+- **All pull requests should target the `dev` branch** — do not open PRs against `main`.
+- For **large features or architectural changes**, please open an issue first to discuss the approach before writing code.
+- Make sure your changes don't break existing functionality.
+- Follow the existing code style and project structure.
+
+### Steps
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create your branch from `dev` (`git checkout -b feature/amazing-feature dev`)
+3. Commit your changes using [conventional commits](https://www.conventionalcommits.org/)
+   - `feat: add amazing feature`
+   - `fix: resolve button click issue`
+   - `docs: update API documentation`
+   - `chore: clean up unused imports`
+4. Push to your branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request **against the `dev` branch**
 
 ---
 
